@@ -73,6 +73,11 @@ FLASH_Status FLASH_ErasePage(uint32_t Page_Address)
   /* Return the Erase Status */
   return status;
 }
+FLASH_Status EE_FLASH_ErasePage(uint32_t Page_Address) {
+	for (uint16_t page=0; page<(PAGE_SIZE<<PAGE_MULTIPLIE); page+=PAGE_SIZE) 		if (FLASH_ErasePage(Page_Address+page)!=HAL_OK) return HAL_ERROR;
+	return HAL_OK;
+}
+
 #endif
 /**
   * @brief  Restore the pages to a known good state in case of page's status
@@ -100,14 +105,14 @@ uint16_t EE_Init(void)
       if (PageStatus1 == VALID_PAGE) /* Page0 erased, Page1 valid */
       {
         /* Erase Page0 */
-        FlashStatus = FLASH_ErasePage(PAGE0_BASE_ADDRESS);
+        FlashStatus = EE_FLASH_ErasePage(PAGE0_BASE_ADDRESS);
         /* If erase operation was failed, a Flash error code is returned */
         if (FlashStatus != FLASH_COMPLETE)          return FlashStatus;
       }
       else if (PageStatus1 == RECEIVE_DATA_PAGE) /* Page0 erased, Page1 receive */
       {
         /* Erase Page0 */
-        FlashStatus = FLASH_ErasePage(PAGE0_BASE_ADDRESS);
+        FlashStatus = EE_FLASH_ErasePage(PAGE0_BASE_ADDRESS);
         /* If erase operation was failed, a Flash error code is returned */
         if (FlashStatus != FLASH_COMPLETE)	return FlashStatus;
         /* Mark Page1 as valid */
@@ -147,14 +152,14 @@ uint16_t EE_Init(void)
         /* If program operation was failed, a Flash error code is returned */
         if (FlashStatus != FLASH_COMPLETE)         return FlashStatus;
         /* Erase Page1 */
-        FlashStatus = FLASH_ErasePage(PAGE1_BASE_ADDRESS);
+        FlashStatus = EE_FLASH_ErasePage(PAGE1_BASE_ADDRESS);
         /* If erase operation was failed, a Flash error code is returned */
         if (FlashStatus != FLASH_COMPLETE)	return FlashStatus;
       }
       else if (PageStatus1 == ERASED_PAGE) /* Page0 receive, Page1 erased */
       {
         /* Erase Page1 */
-        FlashStatus = FLASH_ErasePage(PAGE1_BASE_ADDRESS);
+        FlashStatus = EE_FLASH_ErasePage(PAGE1_BASE_ADDRESS);
         /* If erase operation was failed, a Flash error code is returned */
         if (FlashStatus != FLASH_COMPLETE)	return FlashStatus;
         /* Mark Page0 as valid */
@@ -185,7 +190,7 @@ uint16_t EE_Init(void)
       else if (PageStatus1 == ERASED_PAGE) /* Page0 valid, Page1 erased */
       {
         /* Erase Page1 */
-        FlashStatus = FLASH_ErasePage(PAGE1_BASE_ADDRESS);
+        FlashStatus = EE_FLASH_ErasePage(PAGE1_BASE_ADDRESS);
         /* If erase operation was failed, a Flash error code is returned */
         if (FlashStatus != FLASH_COMPLETE)          return FlashStatus;
       }
@@ -211,7 +216,7 @@ uint16_t EE_Init(void)
         /* If program operation was failed, a Flash error code is returned */
         if (FlashStatus != FLASH_COMPLETE)         return FlashStatus;
         /* Erase Page0 */
-        FlashStatus = FLASH_ErasePage(PAGE0_BASE_ADDRESS);
+        FlashStatus = EE_FLASH_ErasePage(PAGE0_BASE_ADDRESS);
         /* If erase operation was failed, a Flash error code is returned */
         if (FlashStatus != FLASH_COMPLETE)         return FlashStatus;
       }
@@ -245,7 +250,7 @@ uint16_t EE_ReadVariable(uint16_t Address, uint16_t* Data)
 {
   uint16_t ValidPage = PAGE0;
   uint16_t AddressValue = 0x5555, ReadStatus = 1;
-  uint32_t ActionAddress = 0x08010000, PageStartAddress = 0x08010000;
+  uint32_t ActionAddress, PageStartAddress;
 
   /* Get active Page for read operation */
   ValidPage = EE_FindValidPage(READ_FROM_VALID_PAGE);
@@ -257,10 +262,10 @@ uint16_t EE_ReadVariable(uint16_t Address, uint16_t* Data)
   }
 
   /* Get the valid Page start Address */
-  PageStartAddress = (uint32_t)(EEPROM_START_ADDRESS + (uint32_t)(ValidPage * PAGE_SIZE));
+  PageStartAddress = (uint32_t)(EEPROM_START_ADDRESS + (uint32_t)(ValidPage * (PAGE_SIZE<<PAGE_MULTIPLIE)));
 
   /* Get the valid Page end Address */
-  ActionAddress = (uint32_t)((EEPROM_START_ADDRESS - 2) + (uint32_t)((1 + ValidPage) * PAGE_SIZE));
+  ActionAddress = (uint32_t)((EEPROM_START_ADDRESS - 2) + (uint32_t)((1 + ValidPage) * (PAGE_SIZE<<PAGE_MULTIPLIE)));
 
   /* Check each active page address starting from end */
   while (ActionAddress > (PageStartAddress + 2))
@@ -330,7 +335,7 @@ static FLASH_Status EE_Format(void)
   FLASH_Status FlashStatus = FLASH_COMPLETE;
 
   /* Erase Page0 */
-  FlashStatus = FLASH_ErasePage(PAGE0_BASE_ADDRESS);
+  FlashStatus = EE_FLASH_ErasePage(PAGE0_BASE_ADDRESS);
 
   /* If erase operation was failed, a Flash error code is returned */
   if (FlashStatus != FLASH_COMPLETE)	return FlashStatus;
@@ -342,7 +347,7 @@ static FLASH_Status EE_Format(void)
   if (FlashStatus != FLASH_COMPLETE)    return FlashStatus;
 
   /* Erase Page1 */
-  FlashStatus = FLASH_ErasePage(PAGE1_BASE_ADDRESS);
+  FlashStatus = EE_FLASH_ErasePage(PAGE1_BASE_ADDRESS);
 
   /* Return Page1 erase operation status */
   return FlashStatus;
@@ -433,8 +438,8 @@ static uint16_t EE_FindValidPage(uint8_t Operation)
 static uint16_t EE_VerifyPageFullWriteVariable(uint16_t VirtAddress, uint16_t Data)
 {
   FLASH_Status FlashStatus = FLASH_COMPLETE;
-  uint16_t ValidPage = PAGE0;
-  uint32_t Address = 0x08010000, PageEndAddress = 0x080107FF;
+  uint16_t ValidPage;
+  uint32_t Address, PageEndAddress;
 
   /* Get valid Page for write operation */
   ValidPage = EE_FindValidPage(WRITE_IN_VALID_PAGE);
@@ -446,10 +451,10 @@ static uint16_t EE_VerifyPageFullWriteVariable(uint16_t VirtAddress, uint16_t Da
   }
 
   /* Get the valid Page start Address */
-  Address = (uint32_t)(EEPROM_START_ADDRESS + (uint32_t)(ValidPage * PAGE_SIZE));
+  Address = (uint32_t)(EEPROM_START_ADDRESS + (uint32_t)(ValidPage * (PAGE_SIZE<<PAGE_MULTIPLIE)));
 
   /* Get the valid Page end Address */
-  PageEndAddress = (uint32_t)((EEPROM_START_ADDRESS - 2) + (uint32_t)((1 + ValidPage) * PAGE_SIZE));
+  PageEndAddress = (uint32_t)((EEPROM_START_ADDRESS - 2) + (uint32_t)((1 + ValidPage) * (PAGE_SIZE<<PAGE_MULTIPLIE)));
 
   /* Check each active page address starting from begining */
   while (Address < PageEndAddress)
@@ -555,7 +560,7 @@ static uint16_t EE_PageTransfer(uint16_t VirtAddress, uint16_t Data)
   }
 
   /* Erase the old Page: Set old Page status to ERASED status */
-  FlashStatus = FLASH_ErasePage(OldPageAddress);
+  FlashStatus = EE_FLASH_ErasePage(OldPageAddress);
 	//printf("Erased on %X with %d\r\n",OldPageAddress,FlashStatus);
   /* If erase operation was failed, a Flash error code is returned */
   if (FlashStatus != FLASH_COMPLETE)

@@ -54,10 +54,6 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-ErrorStatus  HSEStartUpStatus;
-FLASH_Status FlashStatus;
-uint16_t VarValue = 0;
-extern FLASH_Status FLASH_ErasePage(uint32_t Page_Address);
 
 
 /* USER CODE END PV */
@@ -102,7 +98,7 @@ int main(void)
   MX_IWDG_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-	printf("Bootloader v1.0\r\n");
+	printf("EEPROM EMULATOR v3.1.2\r\n");
   /* Unlock the Flash Program Erase controller */
 	HAL_FLASH_Unlock();
 
@@ -117,16 +113,16 @@ int main(void)
   {
   /* USER CODE END WHILE */
 		printf("Writing: ");
-		for(uint16_t tmp=1;tmp<=NumbOfVar;tmp++) {
+		for(uint16_t tmp=1;tmp<=22;tmp++) {
 			tmp3=EE_WriteVariable(tmp,nmb);
 			printf("%d:%04X\t",tmp,nmb);
 			if (tmp3) printf("ERROR: %d",tmp3);
 				nmb+=0x1111;
 		}
 		printf("\r\nReading: ");
-		for(uint16_t tmp=1;tmp<=NumbOfVar;tmp++) {
-				tmp3=EE_ReadVariable(tmp,&VarValue);
-			printf("%d:%04X\t",tmp,VarValue);
+		for(uint16_t tmp=1;tmp<=22;tmp++) {
+				tmp3=EE_ReadVariable(tmp,&nmb);
+			printf("%d:%04X\t",tmp,nmb);
 			if (tmp3) printf("ERROR: %d",tmp3);
 		}
 		printf("\r\n\r\n");

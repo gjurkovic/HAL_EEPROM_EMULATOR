@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    EEPROM_Emulation/inc/eeprom.h 
   * @author  MCD Application Team & Goran Jurkovic	
-  * @version V3.1.1
+  * @version V3.1.2
   * @date    07/18/2017
   * @brief   This file contains all the functions prototypes for the EEPROM 
   *          emulation firmware library.
@@ -42,16 +42,40 @@
   #define PAGE_SIZE  (uint16_t)0x800  /* Page size = 2KByte */
 #endif
 
-/* EEPROM start address in Flash */
-#define EEPROM_START_ADDRESS    (0x08010000) /* EEPROM emulation start address:
-                                                  after 64KByte of used Flash memory */
+#ifndef EEPROM_SIZE
+	#define EEPROM_SIZE		250			/* Number of 16bit words possible to store in eeprom */
+#endif
 
+/* Variables' number */
+#define NumbOfVar               ((uint16_t)EEPROM_SIZE)
+
+/* USAGE: 
+	EE_Init();
+	HAL_FLASH_Unlock();
+	
+	EE_WriteVariable(Address, Data);
+	EE_ReadVariable(Address, &Data);
+
+	Where Address is in range of 1 to EEPROM_SIZE and Data is 16 bit variable
+	If ((EEPROM_SIZE/3)>PAGE_SIZE) PAGE_MULTIPLIE=1
+
+	One halfword (One eeprom location/variable) uses 4 bytes (32bits) for: 16 bits variable value and 16bit its address
+	So, if all vars consumes over 30% of a page size, raise PAGE_MULTIPLIE faktor to use more pages to make sense of eeprom emulation... */
+
+#ifndef PAGE_MULTIPLIE	
+	#define PAGE_MULTIPLIE		0	
+#endif
+
+/* EEPROM start address in Flash */
+#ifndef EEPROM_START_ADDRESS
+#define EEPROM_START_ADDRESS    (0x08010000) /* EEPROM emulation start address: after 64KByte of used Flash memory */
+#endif
 /* Pages 0 and 1 base and end addresses */
 #define PAGE0_BASE_ADDRESS      (EEPROM_START_ADDRESS)
-#define PAGE0_END_ADDRESS       ((uint32_t)(EEPROM_START_ADDRESS + (PAGE_SIZE - 1)))
+#define PAGE0_END_ADDRESS       ((uint32_t)(EEPROM_START_ADDRESS + ((PAGE_SIZE<<PAGE_MULTIPLIE) - 1)))
 
-#define PAGE1_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + PAGE_SIZE))
-#define PAGE1_END_ADDRESS       ((uint32_t)(EEPROM_START_ADDRESS + (2 * PAGE_SIZE - 1)))
+#define PAGE1_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + (PAGE_SIZE<<PAGE_MULTIPLIE)))
+#define PAGE1_END_ADDRESS       ((uint32_t)(EEPROM_START_ADDRESS + (2 * (PAGE_SIZE << PAGE_MULTIPLIE) - 1)))
 
 /* Used Flash pages for EEPROM emulation */
 #define PAGE0                   (0x0000)
@@ -72,8 +96,6 @@
 /* Page full define */
 #define PAGE_FULL               ((uint8_t)0x80)
 
-/* Variables' number */
-#define NumbOfVar               ((uint8_t)22)
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
